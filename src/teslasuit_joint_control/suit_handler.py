@@ -70,6 +70,9 @@ class Teslasuit():
         self.ems_channels['Right']['Triceps'] = [mapper.get_bone_contents(bones[15])[1]]
         self.ems_channels['Left']['Biceps'] = [mapper.get_bone_contents(bones[12])[1]]
         self.ems_channels['Left']['Triceps'] = [mapper.get_bone_contents(bones[13])[1]]
+        self.ems_channels['Right']['KneeFlex'] = [mapper.get_bone_contents(bones[14])[1]]
+        self.ems_channels['Right']['KneeExt'] = [mapper.get_bone_contents(bones[15])[1]]
+
 
     def haptic_play_touch(
             self,
@@ -130,6 +133,35 @@ class Teslasuit():
             last_imu_data[index].q6.z,
             last_imu_data[index].q6.w]
         return q6_data
+
+    def get_gyro(self, index):
+        last_imu_data = self.streamer.get_raw_data_on_ready()
+        gyro_data = [last_imu_data[index].gyro.x,
+                     last_imu_data[index].gyro.y,
+                     last_imu_data[index].gyro.z]
+        return gyro_data
+
+    def get_gyro(self, index):
+        last_imu_data = self.streamer.get_raw_data_on_ready()
+        gyro_data = [last_imu_data[index].gyro.x,
+                     last_imu_data[index].gyro.y,
+                     last_imu_data[index].gyro.z]
+        return gyro_data
+
+    def get_accel(self, index):
+        last_imu_data = self.streamer.get_raw_data_on_ready()
+        accel_data = [last_imu_data[index].accel.x,
+                      last_imu_data[index].accel.y,
+                      last_imu_data[index].accel.z]
+        return accel_data
+
+    def get_linear_accel(self, index):
+        last_imu_data = self.streamer.get_raw_data_on_ready()
+        linear_accel_data = [last_imu_data[index].linear_accel.x,
+                             last_imu_data[index].linear_accel.y,
+                             last_imu_data[index].linear_accel.z]
+        return linear_accel_data
+
 
     def start_emg_streaming(self, buffer=100):
         """

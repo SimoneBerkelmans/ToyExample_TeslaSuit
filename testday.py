@@ -24,22 +24,33 @@ from src.teslasuit_joint_control.main_window import PIDMainWindow
 # Suit initialization
 suit = Teslasuit()
 suit.connect_suit()
+suit.start_mocap_streaming()
 # suit.start_mocap_streaming()
 # suit.get_raw_mocap()
 
 model = SkeletalModel()
 
-model_updater = SkeletalModelUpdater(suit, model)
-model_updater.calibrate()
+#model_updater = SkeletalModelUpdater(suit, model)
+#model_updater.calibrate()
 
 timer=QtCore.QElapsedTimer()
 timer.start()
+ct = 0
+tstart = timer.elapsed()
+print(tstart)
+nit = 100
+while ct < 300:
+    #for i in range(10):
+    last_imu_data =suit.streamer.get_raw_data_on_ready()
+    for index in range(10):
+        gyro_data = [last_imu_data[index].gyro.x,
+                     last_imu_data[index].gyro.y,
+                     last_imu_data[index].gyro.z]
+    #
+    ct =ct+1
 
-while True:
-    tstart = timer.elapsed()
-    model_updater.update_angles()
-    print(timer.elapsed()-tstart)
-
+print((timer.elapsed() - tstart)/300)
+print(ct)
     # print(model.right_elbow_joint.saggital_plane.angle)
     # controller = PIDSkeletalModelController(suit, model)
 # pid_parameters_list = [0, 0, 0]
