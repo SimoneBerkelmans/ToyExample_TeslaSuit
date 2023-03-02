@@ -21,12 +21,6 @@ class App(QMainWindow):
         self.suit = Teslasuit()
         self.suit.connect_suit()
         self.suit.start_mocap_streaming()
-        #self.model = SkeletalModel()
-        #self.model_updater = SkeletalModelUpdater(self.suit, self.model)
-        #self.model_updater.calibrate()
-
-        # control elbow joint here
-        #self.controlled_joint = self.model.left_elbow_joint
 
         # create GUI
         self.title = 'Plot Raw Data TeslaSuit'
@@ -35,12 +29,12 @@ class App(QMainWindow):
         self.setCentralWidget(self.tab_widget)
         self.show()
 
-        # initiate 3 tracking angles
+        # initiate 3 tracking angles (Raw Data Plot)
         self.tracking_angle1 = [0, 0, 0]
         self.tracking_angle2 = [0, 0, 0]
         self.tracking_angle3 = [0, 0, 0]
 
-        # initiate one timer that updates all the plots
+        # initiate one timer that updates the raw data (reduce interval if needed)
         self.timer = QtCore.QTimer()
         self.timer.setInterval(50)
         self.timer.timeout.connect(self.view_update)
@@ -69,76 +63,67 @@ class App(QMainWindow):
                 break
         self.bones = self.mapper.get_layout_bones(layouts[i])
 
+        # default values for FES channels
+        self.fes_channel1 = [self.mapper.get_bone_contents(self.bones[14])[1]]
+        self.fes_channel2 = [self.mapper.get_bone_contents(self.bones[14])[1]]
+        self.fes_channel3 = [self.mapper.get_bone_contents(self.bones[14])[1]]
+
+        # We want to update the FES channel selection
+        self.tab_widget.FESchannel1.currentIndexChanged.connect(self.update_fes_channel1)
+        self.tab_widget.FESchannel2.currentIndexChanged.connect(self.update_fes_channel2)
+        self.tab_widget.FESchannel3.currentIndexChanged.connect(self.update_fes_channel3)
+
+    # update connection to fes electrodes
+    def update_fes_channel1(self, i):
+        self.fes_channel1 = [self.mapper.get_bone_contents(self.bones[i])[1]]
+    def update_fes_channel2(self, i):
+        self.fes_channel2 = [self.mapper.get_bone_contents(self.bones[i])[1]]
+    def update_fes_channel3(self, i):
+        self.fes_channel3 = [self.mapper.get_bone_contents(self.bones[i])[1]]
 
     def view_update(self):
         #self.model_updater.update_angles()
         # tracking angle should be based on current index in GUI
         last_imu_data = self.suit.streamer.get_raw_data_on_ready()
-        index1 = self.tab_widget.PlotIndex1
-        index2 = self.tab_widget.PlotIndex2
-        index3 = self.tab_widget.PlotIndex3
-        if (self.tab_widget.indexoutput == 0):
-            y1 = [last_imu_data[index1].gyro.x,
-                         last_imu_data[index1].gyro.y,
-                         last_imu_data[index1].gyro.z]
-            y2 = [last_imu_data[index2].gyro.x,
-                   last_imu_data[index2].gyro.y,
-                   last_imu_data[index2].gyro.z]
-            y3 = [last_imu_data[index3].gyro.x,
-                   last_imu_data[index3].gyro.y,
-                   last_imu_data[index3].gyro.z]
-        elif (self.tab_widget.indexoutput == 1):
-            y1 = [last_imu_data[index1].accel.x,
-                  last_imu_data[index1].accel.y,
-                  last_imu_data[index1].accel.z]
-            y2 = [last_imu_data[index2].accel.x,
-                  last_imu_data[index2].accel.y,
-                  last_imu_data[index2].accel.z]
-            y3 = [last_imu_data[index3].accel.x,
-                  last_imu_data[index3].accel.y,
-                  last_imu_data[index3].accel.z]
-        else:
-            y1 = [last_imu_data[index1].linear_accel.x,
-                  last_imu_data[index1].linear_accel.y,
-                  last_imu_data[index1].linear_accel.z]
-            y2 = [last_imu_data[index2].linear_accel.x,
-                  last_imu_data[index2].linear_accel.y,
-                  last_imu_data[index2].linear_accel.z]
-            y3 = [last_imu_data[index3].linear_accel.x,
-                  last_imu_data[index3].linear_accel.y,
-                  last_imu_data[index3].linear_accel.z]
-        #index1 = self.tab_widget.PlotIndex1
-        #qd1 = self.suit.get_gyro(index1)
-        #index2 = self.tab_widget.PlotIndex2
-        #qd2 = self.suit.get_gyro(index2)
-        #index3 = self.tab_widget.PlotIndex3
-        #qd3 = self.suit.get_gyro(index3)
-        self.tracking_angle1 = y1
-        self.tracking_angle2 = y2
-        self.tracking_angle3 = y3
+        indices = [self.tab_widget.PlotIndex1, self.tab_widget.PlotIndex2, self.tab_widget.PlotIndex3]
+        for i in range(0,len(indices)):
+            isel = indices[i]
+            if (self.tab_widget.indexoutput == 0):
+                y = [last_imu_data[isel].gyro.x,
+                    last_imu_data[isel].gyro.y,
+                    last_imu_data[isel].gyro.z]
+            elif (self.tab_widget.indexoutput == 1):
+                y = [last_imu_data[isel].accel.x,
+                      last_imu_data[isel].accel.y,
+                      last_imu_data[isel].accel.z]
+            else:
+                y = [last_imu_data[isel].linear_accel.x,
+                      last_imu_data[isel].linear_accel.y,
+                      last_imu_data[isel].linear_accel.z]
+            if (i == 0):
+                self.tracking_angle1 = y
+            elif (i == 1):
+                self.tracking_angle2 = y
+            else:
+                self.tracking_angle3 = y
+
         self.tab_widget.UpdatePlots(self.tracking_angle1, self.tracking_angle2, self.tracking_angle3)
 
     def fes_update(self):
-        # we want to update the FES when the button is clicked
-        #fes_channel1 = self.mapper.get_bone_contents(self.bones[self.tab_widget.FESchannel1_value])[1]
-        # this should be done in another loop. this is not very efficient now
-        fes_channel1 = [self.mapper.get_bone_contents(self.bones[14])[1]]
-        fes_channel2 = [self.mapper.get_bone_contents(self.bones[self.tab_widget.FESchannel2_value])[1]]
-        fes_channel3 = [self.mapper.get_bone_contents(self.bones[self.tab_widget.FESchannel3_value])[1]]
-        amp = self.tab_widget.slider_fes_amp.value()
-
         # send an haptic touch (only when button is pushed)
         # current approach is to start a timer when button is pushed. We give a command during first 100ms, but not
         # during the first 1s after start-up
         if (self.tab_widget.checkbox_fes.checkState() == 2):
+            amp = self.tab_widget.slider_fes_amp.value()
             if (self.tab_widget.fes_timer1.elapsed() < 100 and  self.maintimer.elapsed()>1000):
-                #self.suit.haptic_play_touch(fes_channel1, pw=100, duration=100)
-                #self.suit.haptic_play_touch(fes_channel1)
-                self.suit.haptic_play_touch(fes_channel1, pw=200, duration=200, ampl=amp)
+                amp = self.tab_widget.slider_fes_amp.value()
+                self.suit.haptic_play_touch(self.fes_channel1, pw=200, duration=200, ampl=amp)
             if (self.tab_widget.fes_timer2.elapsed() < 100 and  self.maintimer.elapsed()>1000):
-                self.suit.haptic_play_touch(fes_channel2, pw=100, duration=100, ampl=amp)
+                amp = self.tab_widget.slider_fes_amp.value()
+                self.suit.haptic_play_touch(self.fes_channel2, pw=100, duration=100, ampl=amp)
             if (self.tab_widget.fes_timer3.elapsed() < 100 and  self.maintimer.elapsed()>1000):
-                self.suit.haptic_play_touch(fes_channel3, pw=100, duration=100, ampl=amp)
+                amp = self.tab_widget.slider_fes_amp.value()
+                self.suit.haptic_play_touch(self.fes_channel3, pw=100, duration=100, ampl=amp)
 
 # class for a xy plot
 class CustomPlot(pg.PlotWidget):
@@ -269,19 +254,13 @@ class MyTabWidget(QWidget):
 
         self.FESchannel1 = QComboBox()
         self.FESchannel1.addItems(str_channels)
-        self.FESchannel1_value = 0
-        self.FESchannel1.currentIndexChanged.connect(self.FESchannel1_changed)
 
         self.FESchannel2 = QComboBox()
         self.FESchannel2.addItems(str_channels)
-        self.FESchannel2_value = 0
-        self.FESchannel2.currentIndexChanged.connect(self.FESchannel2_changed)
-
 
         self.FESchannel3 = QComboBox()
         self.FESchannel3.addItems(str_channels)
-        self.FESchannel3_value = 0
-        self.FESchannel3.currentIndexChanged.connect(self.FESchannel3_changed)
+
         self.fes_timer3 = QtCore.QElapsedTimer()
         self.fes_timer3.start()
 
@@ -359,12 +338,6 @@ class MyTabWidget(QWidget):
         self.PlotIndex3 = i
     def setindexOutput(self, i):  # i is an int
         self.indexoutput = i
-    def FESchannel1_changed(self,i):
-        self.FESchannel1_value = i
-    def FESchannel2_changed(self,i):
-        self.FESchannel2_value = i
-    def FESchannel3_changed(self,i):
-        self.FESchannel3_value = i
     def fes1_activate(self):
         print('start channel 1')
         self.fes_timer1.restart()
