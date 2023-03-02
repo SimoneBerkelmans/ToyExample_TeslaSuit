@@ -5,7 +5,7 @@ from PyQt5.QtWidgets import (QMainWindow, QApplication,
     QPushButton, QWidget, QAction,
     QTabWidget, QVBoxLayout, QLabel,
     QSlider, QComboBox, QGroupBox, QHBoxLayout, QFormLayout,
-    QLineEdit)
+    QLineEdit, QCheckBox)
 from PyQt5.QtCore import Qt
 import pyqtgraph as pg
 import numpy as np
@@ -120,22 +120,25 @@ class App(QMainWindow):
 
     def fes_update(self):
         # we want to update the FES when the button is clicked
-        fes_channel1 = self.mapper.get_bone_contents(self.bones[self.FESchannel1_value])[1]
-        fes_channel2 = self.mapper.get_bone_contents(self.bones[self.FESchannel2_value])[1]
-        fes_channel3 = self.mapper.get_bone_contents(self.bones[self.FESchannel3_value])[1]
+        #fes_channel1 = self.mapper.get_bone_contents(self.bones[self.tab_widget.FESchannel1_value])[1]
+        # this should be done in another loop. this is not very efficient now
+        fes_channel1 = [self.mapper.get_bone_contents(self.bones[14])[1]]
+        fes_channel2 = [self.mapper.get_bone_contents(self.bones[self.tab_widget.FESchannel2_value])[1]]
+        fes_channel3 = [self.mapper.get_bone_contents(self.bones[self.tab_widget.FESchannel3_value])[1]]
+        amp = self.tab_widget.slider_fes_amp.value()
 
         # send an haptic touch (only when button is pushed)
-        if (self.tab_widget.fes_timer1.elapsed() < 100 and  self.maintimer.elapsed()>1000):
-            self.suit.haptic_play_touch(fes_channel1, pw=100, duration=100)
-        if (self.tab_widget.fes_timer2.elapsed() < 100 and  self.maintimer.elapsed()>1000):
-            self.suit.haptic_play_touch(fes_channel2, pw=100, duration=100)
-        if (self.tab_widget.fes_timer3.elapsed() < 100 and  self.maintimer.elapsed()>1000):
-            self.suit.haptic_play_touch(fes_channel3, pw=100, duration=100)
-
-
-
-
-
+        # current approach is to start a timer when button is pushed. We give a command during first 100ms, but not
+        # during the first 1s after start-up
+        if (self.tab_widget.checkbox_fes.checkState() == 2):
+            if (self.tab_widget.fes_timer1.elapsed() < 100 and  self.maintimer.elapsed()>1000):
+                #self.suit.haptic_play_touch(fes_channel1, pw=100, duration=100)
+                #self.suit.haptic_play_touch(fes_channel1)
+                self.suit.haptic_play_touch(fes_channel1, pw=200, duration=200, ampl=amp)
+            if (self.tab_widget.fes_timer2.elapsed() < 100 and  self.maintimer.elapsed()>1000):
+                self.suit.haptic_play_touch(fes_channel2, pw=100, duration=100, ampl=amp)
+            if (self.tab_widget.fes_timer3.elapsed() < 100 and  self.maintimer.elapsed()>1000):
+                self.suit.haptic_play_touch(fes_channel3, pw=100, duration=100, ampl=amp)
 
 # class for a xy plot
 class CustomPlot(pg.PlotWidget):
@@ -313,9 +316,24 @@ class MyTabWidget(QWidget):
         self.fes_timer3.start()
         self.FES_button3.clicked.connect(self.fes3_activate)
 
+        self.checkbox_fes = QCheckBox(self.tab2)
+        self.checkbox_fes.setCheckState(False)
+
+        self.slider_fes_amp = QSlider(Qt.Horizontal)
+        self.slider_fes_amp.setMinimum(0)
+        self.slider_fes_amp.setMaximum(800)
+        self.slider_fes_amp.setValue(200)
+        self.slider_fes_amp.setTickPosition(QSlider.TicksBelow)
+        self.slider_fes_amp.setTickInterval(50)
+
+
+        box_FES_button_forms[0].addRow(QLabel("Enable FES"), self.checkbox_fes)
+        box_FES_button_forms[0].addRow(QLabel("Amplitude"), self.slider_fes_amp)
         box_FES_button_forms[0].addRow(QLabel("Channel 1"), self.FES_button1)
         box_FES_button_forms[0].addRow(QLabel("Channel 2"), self.FES_button2)
         box_FES_button_forms[0].addRow(QLabel("Channel 3"), self.FES_button3)
+
+
 
         for form_layout in box_FES_button_forms:
             box_FES_button_layout.addLayout(form_layout)
@@ -357,7 +375,7 @@ class MyTabWidget(QWidget):
         print('start channel 3')
         self.fes_timer3.restart()
 
-
+    # update function for the 2D real-time plots
     def UpdatePlots(self, yval1, yval2, yval3):
         #plotmat1 = [yval1, 0.8 * yval1, 0.6 * yval1]
         #plotmat2 = [yval2, 0.8 * yval2, 0.6 * yval2]
@@ -370,8 +388,6 @@ class MyTabWidget(QWidget):
         self.pgcustom1.update_plot_data()
         self.pgcustom2.update_plot_data()
         self.pgcustom3.update_plot_data()
-
-
 
 
 # start main system
